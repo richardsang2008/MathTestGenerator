@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using ApplicationCore.Interfaces;
 using Infrastructure.DataAccess;
@@ -85,10 +84,11 @@ namespace ApplicationCore.Repositories
             //find out if studentId is correct
             var student = await GetStudentByStudentIdAsync(studentId);
             Guard.AgainstNullArgument(nameof(student),student);
-            var retQuiz = new Models.Jsons.Quiz{QuizItems = new List<Models.Jsons.QuizItem>(),Id =0,QuizDate = DateTime.Now,Score = 0,Student = new Models.Jsons.Student()};
-            
+            var now = DateTime.Now;
+            var retQuiz = new Models.Jsons.Quiz{Id =0,QuizDate = now,Score = 0,Student = new Models.Jsons.Student()};
+            int quizId = await AddQuizAsync(new Quiz {QuizDate = now, Score = 0, StudentId = student.StudentId});
             //create 10 quiz items
-            List<int> quizItemIdList = new List<int>();
+            List<Models.Jsons.QuizItem> quizItemList = new List<Models.Jsons.QuizItem>();
             for (int i = 0; i < 10; i++)
             {
                 var num1 = 1;
@@ -98,19 +98,18 @@ namespace ApplicationCore.Repositories
                 QuizItem qi;
                 if (num1 < num2)
                 {
-                    qi = new QuizItem {Answer = 0, LeftOperand = num2, RightOperand = num1, Operator = op};
+                    qi = new QuizItem {Answer = 0, LeftOperand = num2, RightOperand = num1, Operator = op, QuizId = quizId};
                     await AddQuizItemAsync(qi);
                 }
 
-                qi = new QuizItem {Answer = 0, LeftOperand = num1, RightOperand = num2, Operator = op};
+                qi = new QuizItem {Answer = 0, LeftOperand = num1, RightOperand = num2, Operator = op, QuizId = quizId};
                 quizitemId = await AddQuizItemAsync(qi);
-                quizItemIdList.Add(quizitemId);
+                qi.Id = quizitemId;
                 quizItem = (Models.Jsons.QuizItem) qi;
-                retQuiz.QuizItems = retQuiz.QuizItems.Concat(new[]{quizItem});
+                quizItemList.Add(quizItem);
+                
             }
-            //add quiz
-            var now = DateTime.Now;
-            var quizId = await AddQuizAsync(new Quiz { Score =  0, QuizDate = now, QuizItemIds = quizItemIdList, StudentId = student.StudentId});
+            
             //map quiz
             retQuiz.Id = quizId;
             retQuiz.QuizDate = now;
@@ -119,6 +118,7 @@ namespace ApplicationCore.Repositories
             retQuiz.Student.FirstName = student.FirstName;
             retQuiz.Student.LastName = student.LastName;
             retQuiz.Student.MidName = student.MidName;
+            ((List<Models.Jsons.QuizItem>)retQuiz.QuizItems).AddRange(quizItemList);
 
             return retQuiz;
         }

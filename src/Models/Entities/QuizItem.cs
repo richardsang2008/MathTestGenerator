@@ -16,6 +16,7 @@ namespace Models.Entities
         public decimal RightOperand { get; set; }
         public Operator Operator { get; set; }
         public decimal Answer { get; set; }
+        public int QuizId { get; set; }
 
         public static explicit operator Models.Jsons.QuizItem(QuizItem s)
         {
@@ -42,6 +43,7 @@ namespace Models.Entities
                 RightOperand = s.RightOperand,
                 Answer = s.Answer,
                 Operator = op,
+                QuizId = s.QuizId
             };
         }
     }

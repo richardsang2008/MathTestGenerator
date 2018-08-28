@@ -25,14 +25,14 @@ namespace WebApi.Controllers
                 await _repository.GenerateAQuiz(studentId,Models.Entities.Operator.Addition);
             } else if (@operator == Models.Jsons.Operator.Subtraction)
             {
-                await _repository.GenerateAQuiz(studentId,global::Models.Entities.Operator.Subtraction);
+                await _repository.GenerateAQuiz(studentId,Models.Entities.Operator.Subtraction);
             } else if (@operator == Models.Jsons.Operator.Multiplication)
             {
-                await _repository.GenerateAQuiz(studentId, global::Models.Entities.Operator.Multiplication);
+                await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Multiplication);
             }
             else
             {
-                await _repository.GenerateAQuiz(studentId, global::Models.Entities.Operator.Division);
+                await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Division);
             }
 
             return new Models.Jsons.Quiz();

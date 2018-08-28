@@ -1,0 +1,5 @@
+as a fresh run
+go to infrastructure
+==run these 2 command from terminal
+dotnet ef migrations add {MigrationName}
+dotnet ef database update

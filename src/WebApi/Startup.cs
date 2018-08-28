@@ -1,14 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using ApplicationCore.Interfaces;
+using ApplicationCore.Repositories;
+using Infrastructure.DataAccess;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Swashbuckle.AspNetCore.Swagger;
 
 namespace WebApi
 {
@@ -33,6 +33,31 @@ namespace WebApi
 
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            #region DI 
+            services.AddScoped<IRepository, AppRepository>();
+            services.AddDbContext<AppDbContext>(opt =>
+                opt.UseMySql(Configuration.GetConnectionString("DefaultConnection")));
+
+            #endregion
+
+            #region snippert swagger support
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1",new Info
+                {
+                    Title = "ASP.NET Core 2.1 + Web API",
+                    Version = "v1"
+                });
+            });
+            #endregion
+            #region snippet_ConfigureApiBehaviorOptions
+            services.Configure<ApiBehaviorOptions>(options =>
+            {
+                options.SuppressConsumesConstraintForFormFileParameters = true;
+                options.SuppressInferBindingSourcesForParameters = true;
+                options.SuppressModelStateInvalidFilter = true;
+            });
+            #endregion
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -51,7 +76,15 @@ namespace WebApi
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
-
+            #region snippet swaggerConfigure
+            app.UseSwagger();
+            app.UseSwaggerUI(c => 
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API v1");
+                c.RoutePrefix = string.Empty;
+            });
+            app.UseMvc();
+            #endregion
             app.UseMvc();
         }
     }
