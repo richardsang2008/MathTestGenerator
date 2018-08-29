@@ -17,5 +17,6 @@ namespace ApplicationCore.Interfaces
         Task<Quiz> GetQuizAsync(int id);
         Task<int> AddQuizAsync(Quiz quiz);
         Task<Models.Jsons.Quiz> GenerateAQuiz(string studentId, Operator op);
+        Task<int> CreateQuizItems(IEnumerable<Models.Jsons.QuizItem> quizItems);
     }
 }

@@ -1,5 +1,7 @@
+using System;
 using System.Threading.Tasks;
 using ApplicationCore.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
@@ -16,27 +18,42 @@ namespace WebApi.Controllers
         }
         
         [HttpPost]
+        [ProducesResponseType(200, Type = typeof(Models.Jsons.Quiz))]
         [ProducesResponseType(201)]
         [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
         public async Task<ActionResult<Models.Jsons.Quiz>> CreateAsync(string studentId, Models.Jsons.Operator @operator)
         {
-            if (@operator == Models.Jsons.Operator.Addition)
+            Models.Jsons.Quiz retQuiz = new Models.Jsons.Quiz();
+            try
             {
-                await _repository.GenerateAQuiz(studentId,Models.Entities.Operator.Addition);
-            } else if (@operator == Models.Jsons.Operator.Subtraction)
-            {
-                await _repository.GenerateAQuiz(studentId,Models.Entities.Operator.Subtraction);
-            } else if (@operator == Models.Jsons.Operator.Multiplication)
-            {
-                await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Multiplication);
+                if (@operator == Models.Jsons.Operator.Addition)
+                {
+                    retQuiz = await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Addition);
+                }
+                else if (@operator == Models.Jsons.Operator.Subtraction)
+                {
+                    retQuiz = await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Subtraction);
+                }
+                else if (@operator == Models.Jsons.Operator.Multiplication)
+                {
+                    retQuiz = await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Multiplication);
+                }
+                else
+                {
+                    retQuiz = await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Division);
+                }
             }
-            else
+            catch (Exception e)
             {
-                await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Division);
+                return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
-            return new Models.Jsons.Quiz();
 
+
+            return Ok(retQuiz);
         }
+        
     }
+    
 }

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using ApplicationCore.Interfaces;
 using Infrastructure.DataAccess;
 using LiteGuard;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Query.Internal;
 using Models.Entities;
 
 namespace ApplicationCore.Repositories
@@ -12,10 +14,13 @@ namespace ApplicationCore.Repositories
     public class AppRepository  : IRepository
     {
         private readonly AppDbContext _context;
+        private readonly Random _random;
 
         public AppRepository(AppDbContext appDbContext)
         {
+            
             _context = appDbContext;
+            _random = new Random();
         }
 
         #region Implemented Method
@@ -37,10 +42,9 @@ namespace ApplicationCore.Repositories
 
         public async Task<int> AddStudentAsync(Student student)
         {
-            int rowsAffected;
             _context.Students.Add(student);
-            rowsAffected = await _context.SaveChangesAsync();
-            return rowsAffected;
+            await _context.SaveChangesAsync();
+            return student.Id;
         }
 
         public async Task<IEnumerable<QuizItem>> GetQuizItemsAsync()
@@ -55,10 +59,9 @@ namespace ApplicationCore.Repositories
 
         public async Task<int> AddQuizItemAsync(QuizItem quizItem)
         {
-            int rowsAffected;
             _context.QuizItems.Add(quizItem);
-            rowsAffected = await _context.SaveChangesAsync();
-            return rowsAffected;
+            await _context.SaveChangesAsync();
+            return quizItem.Id;
         }
 
         public async Task<IEnumerable<Quiz>> GetQuizesAsync()
@@ -73,10 +76,30 @@ namespace ApplicationCore.Repositories
 
         public async Task<int> AddQuizAsync(Quiz quiz)
         {
-            int rowsAffected;
             _context.Quizes.Add(quiz);
-            rowsAffected = await _context.SaveChangesAsync();
-            return rowsAffected;    
+            await _context.SaveChangesAsync();
+            return quiz.Id;    
+        }
+
+        private Models.Jsons.QuizItem CreateQuizItem(Operator op, int quizId)
+        {
+            var num1 = _random.Next(1,10000);
+            var num2 = _random.Next(1,10000);
+            Models.Jsons.QuizItem quizItem ;
+            QuizItem qi;
+            if (num1 < num2)
+            {
+                qi = new QuizItem
+                    {Answer = 0, LeftOperand = num2, RightOperand = num1, Operator = op, QuizId = quizId};
+             
+            }
+            else
+            {
+                qi = new QuizItem {Answer = 0, LeftOperand = num1, RightOperand = num2, Operator = op, QuizId = quizId};
+             
+            }
+            quizItem = (Models.Jsons.QuizItem) qi;
+            return quizItem;
         }
 
         public async Task<Models.Jsons.Quiz> GenerateAQuiz(string studentId, Operator op)
@@ -85,31 +108,18 @@ namespace ApplicationCore.Repositories
             var student = await GetStudentByStudentIdAsync(studentId);
             Guard.AgainstNullArgument(nameof(student),student);
             var now = DateTime.Now;
-            var retQuiz = new Models.Jsons.Quiz{Id =0,QuizDate = now,Score = 0,Student = new Models.Jsons.Student()};
+            var retQuiz = new Models.Jsons.Quiz
+                {Id = 0, QuizDate = now, Score = 0, Student = (Models.Jsons.Student) student,QuizItems = new List<Models.Jsons.QuizItem>()};
             int quizId = await AddQuizAsync(new Quiz {QuizDate = now, Score = 0, StudentId = student.StudentId});
             //create 10 quiz items
             List<Models.Jsons.QuizItem> quizItemList = new List<Models.Jsons.QuizItem>();
             for (int i = 0; i < 10; i++)
             {
-                var num1 = 1;
-                var num2 = 2;
-                int quizitemId;
-                Models.Jsons.QuizItem quizItem ;
-                QuizItem qi;
-                if (num1 < num2)
-                {
-                    qi = new QuizItem {Answer = 0, LeftOperand = num2, RightOperand = num1, Operator = op, QuizId = quizId};
-                    await AddQuizItemAsync(qi);
-                }
-
-                qi = new QuizItem {Answer = 0, LeftOperand = num1, RightOperand = num2, Operator = op, QuizId = quizId};
-                quizitemId = await AddQuizItemAsync(qi);
-                qi.Id = quizitemId;
-                quizItem = (Models.Jsons.QuizItem) qi;
-                quizItemList.Add(quizItem);
-                
+                quizItemList.Add(CreateQuizItem(op,quizId));
             }
-            
+            //save the quizitems
+            int recordCount= await CreateQuizItems(quizItemList);
+
             //map quiz
             retQuiz.Id = quizId;
             retQuiz.QuizDate = now;
@@ -121,6 +131,18 @@ namespace ApplicationCore.Repositories
             ((List<Models.Jsons.QuizItem>)retQuiz.QuizItems).AddRange(quizItemList);
 
             return retQuiz;
+        }
+
+        public async Task<int> CreateQuizItems(IEnumerable<Models.Jsons.QuizItem> quizItems)
+        {
+            int recordAffected = 0;
+            foreach (var qi in quizItems)
+            {
+                _context.QuizItems.Add((QuizItem) qi);
+            }
+
+            recordAffected = await _context.SaveChangesAsync();
+            return recordAffected;
         }
 
         #endregion

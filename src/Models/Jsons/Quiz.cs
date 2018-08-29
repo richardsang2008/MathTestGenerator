@@ -37,8 +37,35 @@ namespace Models.Jsons
         [DataMember] public int QuizId { get; set; }
         [DataMember, JsonConverter(typeof(StringEnumConverter))]
         public Operator Operator { get; set; }
-
         [DataMember] public decimal Answer { get; set; }
+        public static explicit operator Models.Entities.QuizItem(QuizItem s)
+        {
+            Models.Entities.Operator op;
+            if (s.Operator == Operator.Addition)
+            {
+                op = Entities.Operator.Addition;
+            } else if (s.Operator == Operator.Subtraction)
+            {
+                op = Entities.Operator.Subtraction;
+            } else if (s.Operator == Operator.Multiplication)
+            {
+                op = Entities.Operator.Multiplication;
+            }
+            else
+            {
+                op = Entities.Operator.Division;
+            }
+
+            return new Models.Entities.QuizItem
+            {
+                Id = s.Id,
+                LeftOperand = s.LeftOperand,
+                RightOperand = s.RightOperand,
+                Answer = s.Answer,
+                Operator = op,
+                QuizId = s.QuizId
+            };
+        }
     }
 
     [DataContract]
