@@ -3,7 +3,9 @@ using System.Text;
 using System.Threading.Tasks;
 using ApplicationCore.Exceptions;
 using ApplicationCore.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Models.CompositEntities.Requests;
 using Models.Entities;
 
 namespace WebApi.Controllers
@@ -29,49 +31,65 @@ namespace WebApi.Controllers
             return result.ToString();
         }
         [HttpPost]
-        [ProducesResponseType(200, Type = typeof(Models.Jsons.Student))]
-        [ProducesResponseType(201)]
+        [ProducesResponseType(200, Type = typeof(Student))]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<Models.Jsons.Student>> CreateAsync(string firstName, string lastName,
-            string midName)
+        public async Task<ActionResult<Student>> CreateAsync([FromBody] StudentReq input)
         {
-            //verify firstname and lastname is not null
-            if (string.IsNullOrEmpty(firstName) && string.IsNullOrEmpty(lastName))
+            try
             {
-                throw new ValidationNotEmptyException("first name and last name can not be empty");
-            }
-            //create a new user
-            var student = new Student
-            {
-                FirstName = firstName, LastName = lastName, MidName = midName, EnrollmentDate = DateTime.Now,
-                StudentId = GenerateCoupon(12)
-            }; 
-            student.Id = await _repository.AddStudentAsync(student);
+                //verify firstname and lastname is not null
+                if (string.IsNullOrEmpty(input.FName) && string.IsNullOrEmpty(input.LName))
+                {
+                    throw new ValidationNotEmptyException("first name and last name can not be empty");
+                }
 
-            return Ok((Models.Jsons.Student) student);
+                //create a new user
+                var student = new Student
+                {
+                    FirstName = input.FName, LastName = input.LName, MidName = input.MName,
+                    EnrollmentDate = DateTime.Now,
+                    StudentId = GenerateCoupon(12)
+                };
+                student.Id = await _repository.AddStudentAsync(student);
+                return Ok(student);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, e);
+            }
         }
 
         [HttpGet("byStudentId")]
-        [ProducesResponseType(200, Type = typeof(Models.Jsons.Student))]
+        [ProducesResponseType(200, Type = typeof(Student))]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<Models.Jsons.Student>> GetStudentByStudentIdAysnc(string studnetId)
+        public async Task<ActionResult<Student>> GetStudentByStudentIdAysnc(string studnetId)
         {
-            if (string.IsNullOrEmpty(studnetId))
+            try
             {
-                //throw new ValidationNotEmptyException("studentId");
-                return BadRequest();
-            }
+                if (string.IsNullOrEmpty(studnetId))
+                {
+                    //throw new ValidationNotEmptyException("studentId");
+                    return BadRequest();
+                }
 
-            var student = await _repository.GetStudentByStudentIdAsync(studnetId);
-            if (student != null)
-            {
-                return Ok((Models.Jsons.Student) student);
-            }
-            else
-            {
+                var student = await _repository.GetStudentByStudentIdAsync(studnetId);
+                if (student != null)
+                {
+                    return Ok(student);
+                }
+
                 return NotFound();
             }
+            catch (ArgumentNullException ex)
+            {
+                return NotFound(ex);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,e);
+            }
+            
         }
 
 

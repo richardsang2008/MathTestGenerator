@@ -6,7 +6,6 @@ using ApplicationCore.Interfaces;
 using Infrastructure.DataAccess;
 using LiteGuard;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query.Internal;
 using Models.Entities;
 
 namespace ApplicationCore.Repositories
@@ -37,7 +36,9 @@ namespace ApplicationCore.Repositories
 
         public async Task<Student> GetStudentByStudentIdAsync(string studentId)
         {
-            return await _context.Students.SingleOrDefaultAsync(o => o.StudentId == studentId);
+            var student = await _context.Students.SingleOrDefaultAsync(o => o.StudentId == studentId);
+            Guard.AgainstNullArgument(nameof(student),student);
+            return student;
         }
 
         public async Task<int> AddStudentAsync(Student student)
@@ -64,6 +65,15 @@ namespace ApplicationCore.Repositories
             return quizItem.Id;
         }
 
+        public async Task<int> UpdateQuizItemAnswerAsync(int id, decimal answer)
+        {
+            //locate the quizitem by id 
+            var quizItem = await _context.QuizItems.FindAsync(id);
+            Guard.AgainstNullArgument(nameof(quizItem),quizItem);
+            quizItem.Answer = answer;
+            return await _context.SaveChangesAsync();
+        }
+
         public async Task<IEnumerable<Quiz>> GetQuizesAsync()
         {
             return await _context.Quizes.ToListAsync();
@@ -81,11 +91,11 @@ namespace ApplicationCore.Repositories
             return quiz.Id;    
         }
 
-        private Models.Jsons.QuizItem CreateQuizItem(Operator op, int quizId)
+        private QuizItem CreateQuizItem(Operator op, int quizId)
         {
             var num1 = _random.Next(1,10000);
             var num2 = _random.Next(1,10000);
-            Models.Jsons.QuizItem quizItem ;
+            QuizItem quizItem ;
             QuizItem qi;
             if (num1 < num2)
             {
@@ -98,28 +108,27 @@ namespace ApplicationCore.Repositories
                 qi = new QuizItem {Answer = 0, LeftOperand = num1, RightOperand = num2, Operator = op, QuizId = quizId};
              
             }
-            quizItem = (Models.Jsons.QuizItem) qi;
+            quizItem =  qi;
             return quizItem;
         }
 
-        public async Task<Models.Jsons.Quiz> GenerateAQuiz(string studentId, Operator op)
+        public async Task<Models.CompositEntities.Quiz> GenerateAQuiz(string studentId, Operator op)
         {
             //find out if studentId is correct
             var student = await GetStudentByStudentIdAsync(studentId);
             Guard.AgainstNullArgument(nameof(student),student);
             var now = DateTime.Now;
-            var retQuiz = new Models.Jsons.Quiz
-                {Id = 0, QuizDate = now, Score = 0, Student = (Models.Jsons.Student) student,QuizItems = new List<Models.Jsons.QuizItem>()};
+            var retQuiz = new Models.CompositEntities.Quiz
+                {Id = 0, QuizDate = now, Score = 0, Student = student,QuizItems = new List<QuizItem>()};
             int quizId = await AddQuizAsync(new Quiz {QuizDate = now, Score = 0, StudentId = student.StudentId});
             //create 10 quiz items
-            List<Models.Jsons.QuizItem> quizItemList = new List<Models.Jsons.QuizItem>();
+            List<QuizItem> quizItemList = new List<QuizItem>();
             for (int i = 0; i < 10; i++)
             {
                 quizItemList.Add(CreateQuizItem(op,quizId));
             }
             //save the quizitems
-            int recordCount= await CreateQuizItems(quizItemList);
-
+            await CreateQuizItems(quizItemList);
             //map quiz
             retQuiz.Id = quizId;
             retQuiz.QuizDate = now;
@@ -128,20 +137,78 @@ namespace ApplicationCore.Repositories
             retQuiz.Student.FirstName = student.FirstName;
             retQuiz.Student.LastName = student.LastName;
             retQuiz.Student.MidName = student.MidName;
-            ((List<Models.Jsons.QuizItem>)retQuiz.QuizItems).AddRange(quizItemList);
+            ((List<QuizItem>)retQuiz.QuizItems).AddRange(quizItemList);
 
             return retQuiz;
         }
 
-        public async Task<int> CreateQuizItems(IEnumerable<Models.Jsons.QuizItem> quizItems)
+        public async Task<Models.CompositEntities.Quiz> GetAQuiz(int id)
         {
-            int recordAffected = 0;
-            foreach (var qi in quizItems)
+            var quiz = await _context.Quizes.FindAsync(id);
+            Guard.AgainstNullArgument(nameof(quiz),quiz);
+            //find the student
+            var student = await GetStudentByStudentIdAsync(quiz.StudentId);
+            var retQuiz = new Models.CompositEntities.Quiz
             {
-                _context.QuizItems.Add((QuizItem) qi);
+                Id = quiz.Id,
+                QuizDate = quiz.QuizDate,
+                Score =  quiz.Score,
+                Student = student,
+                QuizItems =  new List<QuizItem>()
+            };
+            var quizItems = await _context.QuizItems.Where(o => o.QuizId == id).ToListAsync();
+            Guard.AgainstNullArgument(nameof(quizItems), quizItems);
+            foreach (var quizItem in quizItems)
+            {
+                ((List<QuizItem>)retQuiz.QuizItems).Add(quizItem);
             }
 
-            recordAffected = await _context.SaveChangesAsync();
+            if (retQuiz.Score == 0 && retQuiz.QuizItems.Count() >0)
+            {
+                int size = retQuiz.QuizItems.Count();
+                int correctCount = 0;
+                foreach (var item in retQuiz.QuizItems)
+                {
+                    if (item.Operator == Operator.Addition)
+                    {
+                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand + item.RightOperand,2))
+                            correctCount++;
+                    }
+                    else if (item.Operator == Operator.Subtraction)
+                    {
+                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand - item.RightOperand,2))
+                            correctCount++;
+                    }
+                    else if (item.Operator == Operator.Multiplication)
+                    {
+                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand * item.RightOperand,2))
+                        correctCount++;
+                    } 
+                    else if (item.Operator == Operator.Division)
+                    {
+                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand / item.RightOperand,2))
+                        correctCount++;
+                    }
+                }
+
+                retQuiz.Score = Math.Round((decimal)correctCount / size ,2);
+                //update teh quiz score
+                quiz.Score = retQuiz.Score;
+                await _context.SaveChangesAsync();
+            }
+
+            return retQuiz;
+
+        }
+
+        public async Task<int> CreateQuizItems(IEnumerable<QuizItem> quizItems)
+        {
+            foreach (var qi in quizItems)
+            {
+                _context.QuizItems.Add( qi);
+            }
+
+            var recordAffected = await _context.SaveChangesAsync();
             return recordAffected;
         }
 

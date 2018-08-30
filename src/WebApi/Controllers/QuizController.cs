@@ -3,6 +3,9 @@ using System.Threading.Tasks;
 using ApplicationCore.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Models.CompositEntities.Requests;
+using Models.Entities;
+using Quiz = Models.CompositEntities.Quiz;
 
 namespace WebApi.Controllers
 {
@@ -16,40 +19,86 @@ namespace WebApi.Controllers
         {
             _repository = repository;
         }
+
         
-        [HttpPost]
-        [ProducesResponseType(200, Type = typeof(Models.Jsons.Quiz))]
-        [ProducesResponseType(201)]
+        [HttpGet("{id}")]
+        [ProducesResponseType(200, Type = typeof(Quiz))]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<Models.Jsons.Quiz>> CreateAsync(string studentId, Models.Jsons.Operator @operator)
+        public async Task<ActionResult<Quiz>> GetAQuizAsync(int id)
         {
-            Models.Jsons.Quiz retQuiz = new Models.Jsons.Quiz();
             try
             {
-                if (@operator == Models.Jsons.Operator.Addition)
-                {
-                    retQuiz = await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Addition);
-                }
-                else if (@operator == Models.Jsons.Operator.Subtraction)
-                {
-                    retQuiz = await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Subtraction);
-                }
-                else if (@operator == Models.Jsons.Operator.Multiplication)
-                {
-                    retQuiz = await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Multiplication);
-                }
-                else
-                {
-                    retQuiz = await _repository.GenerateAQuiz(studentId, Models.Entities.Operator.Division);
-                }
+                //quizeItemId is unique
+                return Ok(await _repository.GetAQuiz(id));
+            }
+            catch (ArgumentNullException ex)
+            {
+                return NotFound(ex);
             }
             catch (Exception e)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError);
+                return StatusCode(StatusCodes.Status500InternalServerError,e);
             }
+        }
+        
+        [HttpPatch("{id}")]
+        [ProducesResponseType(200, Type = typeof(int))]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<int>> AnswerAQuizItemAsync(int id, decimal answer)
+        {
+            try
+            {
+                return Ok(await _repository.UpdateQuizItemAnswerAsync(id, answer));
+            } catch (ArgumentNullException ex)
+            {
+                return NotFound(ex);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,e);
+            }
+        }
 
-
+        [HttpPost]
+        [ProducesResponseType(200, Type = typeof(Quiz))]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<Quiz>> CreateAsync( [FromBody] CreateQuizReq createQuizRequest)
+        {
+            Quiz retQuiz;
+            try
+            {
+                if (createQuizRequest.Operator == Operator.Addition)
+                {
+                    retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
+                        Operator.Addition);
+                }
+                else if (createQuizRequest.Operator == Operator.Subtraction)
+                {
+                    retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
+                        Operator.Subtraction);
+                }
+                else if (createQuizRequest.Operator == Operator.Multiplication)
+                {
+                    retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
+                        Operator.Multiplication);
+                }
+                else
+                {
+                    retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
+                        Operator.Division);
+                }
+            }
+            catch (ArgumentNullException ex)
+            {
+                return NotFound(ex);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,e);
+            }
 
             return Ok(retQuiz);
         }
