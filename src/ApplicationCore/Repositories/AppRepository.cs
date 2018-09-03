@@ -40,7 +40,12 @@ namespace ApplicationCore.Repositories
             Guard.AgainstNullArgument(nameof(student),student);
             return student;
         }
-
+        public async Task<Student> GetStudentByEmailAsync(string email)
+        {
+            var student = await _context.Students.SingleOrDefaultAsync(o => o.Email == email);
+            Guard.AgainstNullArgument(nameof(student),student);
+            return student;
+        }
         public async Task<int> AddStudentAsync(Student student)
         {
             _context.Students.Add(student);
@@ -132,11 +137,7 @@ namespace ApplicationCore.Repositories
             //map quiz
             retQuiz.Id = quizId;
             retQuiz.QuizDate = now;
-            retQuiz.Student.Id = student.Id;
-            retQuiz.Student.EnrollmentDate = student.EnrollmentDate;
-            retQuiz.Student.FirstName = student.FirstName;
-            retQuiz.Student.LastName = student.LastName;
-            retQuiz.Student.MidName = student.MidName;
+            retQuiz.Student = student;
             ((List<QuizItem>)retQuiz.QuizItems).AddRange(quizItemList);
 
             return retQuiz;

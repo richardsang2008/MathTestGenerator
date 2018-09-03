@@ -9,6 +9,7 @@ namespace ApplicationCore.Interfaces
         Task<IEnumerable<Student>> GetStudentsAsync();
         Task<Student> GetStudentAsync(int id);
         Task<Student> GetStudentByStudentIdAsync(string studentId);
+        Task<Student> GetStudentByEmailAsync(string email);
         Task<int> AddStudentAsync(Student student);
         Task<IEnumerable<QuizItem>> GetQuizItemsAsync();
         Task<QuizItem> GetQuizItemAsync(int id);

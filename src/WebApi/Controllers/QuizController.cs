@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
 using ApplicationCore.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -70,25 +72,44 @@ namespace WebApi.Controllers
             Quiz retQuiz;
             try
             {
-                if (createQuizRequest.Operator == Operator.Addition)
+                //check to see if there is any quiz score below 60%
+                var quizes = await _repository.GetQuizesAsync();
+                var remainQuizes = quizes.Where(o => o.Score < (decimal) 0.6 && o.StudentId == createQuizRequest.StudentId);
+                if (remainQuizes.Any() )
                 {
-                    retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
-                        Operator.Addition);
-                }
-                else if (createQuizRequest.Operator == Operator.Subtraction)
-                {
-                    retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
-                        Operator.Subtraction);
-                }
-                else if (createQuizRequest.Operator == Operator.Multiplication)
-                {
-                    retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
-                        Operator.Multiplication);
+                    //get one of the quiz
+                    var remainQuiz =  remainQuizes.First();
+                    retQuiz= await _repository.GetAQuiz(remainQuiz.Id);
+                    return retQuiz;
                 }
                 else
                 {
-                    retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
-                        Operator.Division);
+                    //generate a new quiz
+                    //force to be ether add or subtraction
+                    var random = new Random();
+                    var quizType =random.Next((int)Operator.Addition, (int)Operator.Subtraction);
+                 
+                
+                    if ((Operator)quizType == Operator.Addition)
+                    {
+                        retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
+                            Operator.Addition);
+                    }
+                    else if ((Operator)quizType == Operator.Subtraction)
+                    {
+                        retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
+                            Operator.Subtraction);
+                    }
+                    else if ((Operator)quizType == Operator.Multiplication)
+                    {
+                        retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
+                            Operator.Multiplication);
+                    }
+                    else
+                    {
+                        retQuiz = await _repository.GenerateAQuiz(createQuizRequest.StudentId,
+                            Operator.Division);
+                    }
                 }
             }
             catch (ArgumentNullException ex)

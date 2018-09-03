@@ -59,6 +59,7 @@ namespace WebApi.Controllers
             }
         }
 
+        
         [HttpGet("byStudentId")]
         [ProducesResponseType(200, Type = typeof(Student))]
         [ProducesResponseType(404)]
@@ -74,6 +75,38 @@ namespace WebApi.Controllers
                 }
 
                 var student = await _repository.GetStudentByStudentIdAsync(studnetId);
+                if (student != null)
+                {
+                    return Ok(student);
+                }
+
+                return NotFound();
+            }
+            catch (ArgumentNullException ex)
+            {
+                return NotFound(ex);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,e);
+            }
+            
+        }
+        [HttpGet("byEmail")]
+        [ProducesResponseType(200, Type = typeof(Student))]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<Student>> GetStudentByEmailAysnc(string email)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(email))
+                {
+                    
+                    return BadRequest();
+                }
+
+                var student = await _repository.GetStudentByEmailAsync(email);
                 if (student != null)
                 {
                     return Ok(student);
