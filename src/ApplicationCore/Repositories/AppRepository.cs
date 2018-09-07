@@ -143,6 +143,49 @@ namespace ApplicationCore.Repositories
             return retQuiz;
         }
 
+        public async Task<decimal> ScoreAQuiz(int id)
+        {
+            var quiz = await _context.Quizes.FindAsync(id);
+            Guard.AgainstNullArgument(nameof(quiz),quiz);
+            var quizItems = await _context.QuizItems.Where(o => o.QuizId == id).ToListAsync();
+            Guard.AgainstNullArgument(nameof(quizItems), quizItems);
+            if (quizItems.Count() >0)
+            {
+                int size = quizItems.Count();
+                int correctCount = 0;
+                foreach (var item in quizItems)
+                {
+                    if (item.Operator == Operator.Addition)
+                    {
+                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand + item.RightOperand,2))
+                            correctCount++;
+                    }
+                    else if (item.Operator == Operator.Subtraction)
+                    {
+                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand - item.RightOperand,2))
+                            correctCount++;
+                    }
+                    else if (item.Operator == Operator.Multiplication)
+                    {
+                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand * item.RightOperand,2))
+                            correctCount++;
+                    } 
+                    else if (item.Operator == Operator.Division)
+                    {
+                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand / item.RightOperand,2))
+                            correctCount++;
+                    }
+                }
+
+                quiz.Score = Math.Round((decimal)correctCount / size ,2);
+                
+                //update teh quiz score
+                await _context.SaveChangesAsync();
+            }
+
+            return quiz.Score;
+        }
+
         public async Task<Models.CompositEntities.Quiz> GetAQuiz(int id)
         {
             var quiz = await _context.Quizes.FindAsync(id);
@@ -164,39 +207,6 @@ namespace ApplicationCore.Repositories
                 ((List<QuizItem>)retQuiz.QuizItems).Add(quizItem);
             }
 
-            if (retQuiz.Score == 0 && retQuiz.QuizItems.Count() >0)
-            {
-                int size = retQuiz.QuizItems.Count();
-                int correctCount = 0;
-                foreach (var item in retQuiz.QuizItems)
-                {
-                    if (item.Operator == Operator.Addition)
-                    {
-                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand + item.RightOperand,2))
-                            correctCount++;
-                    }
-                    else if (item.Operator == Operator.Subtraction)
-                    {
-                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand - item.RightOperand,2))
-                            correctCount++;
-                    }
-                    else if (item.Operator == Operator.Multiplication)
-                    {
-                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand * item.RightOperand,2))
-                        correctCount++;
-                    } 
-                    else if (item.Operator == Operator.Division)
-                    {
-                        if (Math.Round(item.Answer,2) == Math.Round(item.LeftOperand / item.RightOperand,2))
-                        correctCount++;
-                    }
-                }
-
-                retQuiz.Score = Math.Round((decimal)correctCount / size ,2);
-                //update teh quiz score
-                quiz.Score = retQuiz.Score;
-                await _context.SaveChangesAsync();
-            }
 
             return retQuiz;
 

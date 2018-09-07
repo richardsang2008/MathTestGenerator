@@ -21,5 +21,6 @@ namespace ApplicationCore.Interfaces
         Task<Models.CompositEntities.Quiz> GenerateAQuiz(string studentId, Operator op);
         Task<Models.CompositEntities.Quiz> GetAQuiz(int id);
         Task<int> CreateQuizItems(IEnumerable<QuizItem> quizItems);
+        Task<decimal> ScoreAQuiz(int id);
     }
 }

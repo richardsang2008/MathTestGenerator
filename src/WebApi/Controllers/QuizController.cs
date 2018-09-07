@@ -44,15 +44,15 @@ namespace WebApi.Controllers
             }
         }
         
-        [HttpPatch("{id}")]
+        [HttpPatch("quizitems")]
         [ProducesResponseType(200, Type = typeof(int))]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<int>> AnswerAQuizItemAsync(int id, decimal answer)
+        public async Task<ActionResult<int>> AnswerAQuizItemAsync([FromBody]AnswerQuizItemReq answer)
         {
             try
             {
-                return Ok(await _repository.UpdateQuizItemAnswerAsync(id, answer));
+                return Ok(await _repository.UpdateQuizItemAnswerAsync(answer.QuizItemId, answer.Answer));
             } catch (ArgumentNullException ex)
             {
                 return NotFound(ex);
@@ -62,6 +62,26 @@ namespace WebApi.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError,e);
             }
         }
+
+        [HttpGet("{id}/score")]
+        [ProducesResponseType(200, Type = typeof(decimal))]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<decimal>> ScoreTheQuiz(int id)
+        {
+            try
+            {
+                return Ok(await _repository.ScoreAQuiz(id));
+            } catch (ArgumentNullException ex)
+            {
+                return NotFound(ex);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,e);
+            }
+        }
+
 
         [HttpPost]
         [ProducesResponseType(200, Type = typeof(Quiz))]
