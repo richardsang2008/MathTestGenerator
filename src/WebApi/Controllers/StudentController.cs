@@ -48,7 +48,8 @@ namespace WebApi.Controllers
                 {
                     FirstName = input.FName, LastName = input.LName, MidName = input.MName,
                     EnrollmentDate = DateTime.Now,
-                    StudentId = GenerateCoupon(12)
+                    StudentId = GenerateCoupon(12),
+                    Email = input.Email
                 };
                 student.Id = await _repository.AddStudentAsync(student);
                 return Ok(student);
