@@ -94,6 +94,8 @@ $tf/
 
 # Guidance Automation Toolkit
 *.gpState
+ngrok
+
 
 # ReSharper is a .NET coding add-in
 _ReSharper*/

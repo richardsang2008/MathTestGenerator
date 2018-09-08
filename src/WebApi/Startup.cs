@@ -4,6 +4,7 @@ using Infrastructure.DataAccess;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -24,6 +25,7 @@ namespace WebApi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            
             services.Configure<CookiePolicyOptions>(options =>
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
@@ -33,7 +35,9 @@ namespace WebApi
 
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+
             #region DI 
+
             services.AddScoped<IRepository, AppRepository>();
             services.AddDbContext<AppDbContext>(opt =>
                 opt.UseMySql(Configuration.GetConnectionString("DefaultConnection")));
@@ -41,22 +45,27 @@ namespace WebApi
             #endregion
 
             #region snippert swagger support
+
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1",new Info
+                c.SwaggerDoc("v1", new Info
                 {
                     Title = "ASP.NET Core 2.1 + Web API",
                     Version = "v1"
                 });
             });
+
             #endregion
+
             #region snippet_ConfigureApiBehaviorOptions
+
             services.Configure<ApiBehaviorOptions>(options =>
             {
                 options.SuppressConsumesConstraintForFormFileParameters = true;
                 options.SuppressInferBindingSourcesForParameters = true;
                 options.SuppressModelStateInvalidFilter = true;
             });
+
             #endregion
         }
 
@@ -72,19 +81,30 @@ namespace WebApi
                 app.UseExceptionHandler("/Error");
                 app.UseHsts();
             }
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
 
+            app.UseAuthentication();
+            
+            
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
+
             #region snippet swaggerConfigure
+
             app.UseSwagger();
-            app.UseSwaggerUI(c => 
+            app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API v1");
                 c.RoutePrefix = string.Empty;
             });
             app.UseMvc();
+
             #endregion
+
             app.UseMvc();
         }
     }
