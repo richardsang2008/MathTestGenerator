@@ -106,9 +106,10 @@ namespace WebApi.Controllers
                 {
                     //generate a new quiz
                     //force to be ether add or subtraction
-                    var random = new Random();
-                    var quizType =random.Next((int)Operator.Addition, (int)Operator.Subtraction);
-                 
+                    //var random = new Random();
+                    //var quizType =random.Next((int)Operator.Addition, (int)Operator.Subtraction);
+                    //force to be sutraction
+                    var quizType = Operator.Subtraction;
                 
                     if ((Operator)quizType == Operator.Addition)
                     {
